@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
+from models import db, User, Favorite
 #from models import Person
 
 app = Flask(__name__)
@@ -30,14 +30,30 @@ def handle_invalid_usage(error):
 def sitemap():
     return generate_sitemap(app)
 
-@app.route('/user', methods=['GET'])
+@app.route('/users', methods=['GET'])
 def handle_hello():
-
+    all_users = User.query.all()
+    all_users = list(map(lambda user: user.serialize(),all_users))
     response_body = {
-        "msg": "Hello, this is your GET /user response "
+        "user": all_users
     }
 
     return jsonify(response_body), 200
+
+@app.route('/<user>/favorites', methods=['GET'])
+def get_favorites(user):
+    single_user = User.query.filter_by(username=user).first()
+    if single_user is None:
+        raise APIException("User not found", status_code=404)
+    favorites = Favorite.query.filter_by(username=user)
+    all_favorites = list(map(lambda favorite: favorite.serialize(), favorites))
+    response_body = {
+        "favorites": all_favorites
+    }
+
+    return jsonify(response_body), 200
+
+
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
