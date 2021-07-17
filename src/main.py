@@ -53,6 +53,54 @@ def get_favorites(user):
 
     return jsonify(response_body), 200
 
+@app.route('/favorite/planet/<int:id>', methods=['POST','DELETE'])
+def add_planet(id):
+    request_body = request.get_json()
+    if request_body is None or request_body == {}:
+        raise APIException("Empty body", status_code=404)
+    if request.method == 'POST':
+        planet = Favorite(name=request_body["name"], entity_type="planet", entity_id=id, username=request_body["username"])
+        db.session.add(planet)
+        db.session.commit()
+    else:
+        deleted_planet = Favorite.query.filter_by(entity_type='planet', entity_id=id, username=request_body["username"]).first()
+        if deleted_planet is None:
+            raise APIException("planet not found", status_code=404)
+        db.session.delete(deleted_planet)
+        db.session.commit()
+    favorites = Favorite.query.filter_by(username=request_body["username"])
+    all_favorites = list(map(lambda favorite: favorite.serialize(), favorites))
+    response_body = {
+        "favorites": all_favorites
+    }
+
+    return jsonify(response_body), 200
+
+@app.route('/favorite/person/<int:id>', methods=['POST','DELETE'])
+def add_person(id):
+    request_body = request.get_json()
+    if request_body is None or request_body == {}:
+        raise APIException("Empty body", status_code=404)
+    if request.method == 'POST':
+        record = Favorite.query.filter_by(username=request_body["username"], name=request_body["name"]).first()
+        if record:
+            raise APIException("Favorite already exists", status_code=418)
+        person = Favorite(name=request_body["name"], entity_type="person", entity_id=id, username=request_body["username"])
+        db.session.add(person)
+        db.session.commit()
+    else:
+        deleted_person = Favorite.query.filter_by(entity_type='person', entity_id=id, username=request_body["username"]).first()
+        if deleted_person is None:
+            raise APIException("person not found", status_code=404)
+        db.session.delete(deleted_person)
+        db.session.commit()
+    favorites = Favorite.query.filter_by(username=request_body["username"])
+    all_favorites = list(map(lambda favorite: favorite.serialize(), favorites))
+    response_body = {
+        "favorites": all_favorites
+    }
+
+    return jsonify(response_body), 200
 
 
 # this only runs if `$ python src/main.py` is executed
