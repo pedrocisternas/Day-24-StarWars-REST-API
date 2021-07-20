@@ -9,6 +9,11 @@ from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
 from models import db, User, Favorite
+from flask_jwt_extended import create_access_token
+from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import jwt_required
+from flask_jwt_extended import JWTManager
+import datetime
 #from models import Person
 
 app = Flask(__name__)
@@ -19,15 +24,37 @@ MIGRATE = Migrate(app, db)
 db.init_app(app)
 CORS(app)
 setup_admin(app)
+app.config["JWT_SECRET_KEY"] = "super-secret"  # Change this!
+jwt = JWTManager(app)
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    credentials = request.get_json()
+    username = credentials.get("username", None)
+    password = credentials.get("password", None)
+    # Query your database for username and password
+    user = User.query.filter_by(username=username, password=password).first()
+    if user is None:
+        # the user was not found on the database
+        return jsonify({"msg": "Bad username or password"}), 401
+    
+    # create a new token with the user id inside
+    expires = datetime.timedelta(days=7)
+    access_token = create_access_token(identity=user.username, expires_delta = expires)
+
+    return jsonify({ "token": access_token, "username": user.username })
 
 # Handle/serialize errors like a JSON object
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):
+
     return jsonify(error.to_dict()), error.status_code
 
 # generate sitemap with all your endpoints
 @app.route('/')
 def sitemap():
+
     return generate_sitemap(app)
 
 @app.route('/users', methods=['GET'])
