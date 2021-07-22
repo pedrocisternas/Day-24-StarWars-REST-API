@@ -57,6 +57,14 @@ def sitemap():
 
     return generate_sitemap(app)
 
+@app.route('/hello', methods=['GET'])
+@jwt_required()
+def hello():
+    current_user_id = get_jwt_identity()
+    # user = User.filter.get(current_user_id)
+    
+    return jsonify(user=current_user_id), 200
+
 @app.route('/users', methods=['GET'])
 def handle_hello():
     all_users = User.query.all()
